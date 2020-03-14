@@ -2,15 +2,18 @@ package com.yorhp.luckmoney;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.Settings;
+import android.util.Log;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.yorhp.luckmoney.service.LuckMoneyService;
+import com.yorhp.luckmoney.service.WxScanAccessibilityService;
 import com.yorhp.luckmoney.util.AccessbilityUtil;
+import com.yorhp.luckmoney.util.PollingUtil;
 import com.yorhp.luckmoney.util.ScreenUtil;
 import com.yorhp.luckmoney.util.SharedPreferencesUtil;
 
@@ -48,76 +51,88 @@ public class MainActivity extends AppCompatActivity {
         swWx = findViewById(R.id.swWx);
         tvDevice=findViewById(R.id.tv_device);
         tvTime=findViewById(R.id.tv_wait_time);
-        LuckMoneyService.waitWindowTime=SharedPreferencesUtil.getInt(WAIT_WINDOW_TIME,150);
-        tvTime.setText(LuckMoneyService.waitWindowTime+"ms");
+        WxScanAccessibilityService.waitWindowTime=SharedPreferencesUtil.getInt(WAIT_WINDOW_TIME,150);
+        tvTime.setText(WxScanAccessibilityService.waitWindowTime+"ms");
         tvOpenTime=findViewById(R.id.tv_wait_open_time);
-        LuckMoneyService.waitGetMoneyTime=SharedPreferencesUtil.getInt(WAIT_GET_MONEY_TIME,700);
-        tvOpenTime.setText(LuckMoneyService.waitGetMoneyTime+"ms");
+        WxScanAccessibilityService.waitGetMoneyTime=SharedPreferencesUtil.getInt(WAIT_GET_MONEY_TIME,700);
+        tvOpenTime.setText(WxScanAccessibilityService.waitGetMoneyTime+"ms");
         swWx.setOnClickListener((v) -> {
             startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
         });
-        ckSingle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                LuckMoneyService.isSingle = b;
-            }
-        });
-
-        ckPause.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                LuckMoneyService.isPause = b;
-            }
-        });
 
         findViewById(R.id.ll_wait_time).setOnClickListener(v->{
-            if(LuckMoneyService.needSetTime==0){
+            if(WxScanAccessibilityService.needSetTime==0){
                 Toast.makeText(MainActivity.this,"当前不可修改",Toast.LENGTH_SHORT).show();
                 return;
             }
-            if(LuckMoneyService.waitWindowTime<MAX_WAIT_WINDOW_TIME/4){
-                LuckMoneyService.waitWindowTime=LuckMoneyService.waitWindowTime+30;
+            if(WxScanAccessibilityService.waitWindowTime<MAX_WAIT_WINDOW_TIME/4){
+                WxScanAccessibilityService.waitWindowTime= WxScanAccessibilityService.waitWindowTime+30;
             }else {
-                LuckMoneyService.waitWindowTime=0;
+                WxScanAccessibilityService.waitWindowTime=0;
             }
-            tvTime.setText(LuckMoneyService.waitWindowTime+"ms");
+            tvTime.setText(WxScanAccessibilityService.waitWindowTime+"ms");
         });
 
         findViewById(R.id.ll_wait_open_time).setOnClickListener(v->{
-            if(LuckMoneyService.needSetTime==0){
+            if(WxScanAccessibilityService.needSetTime==0){
                 Toast.makeText(MainActivity.this,"当前不可修改",Toast.LENGTH_SHORT).show();
                 return;
             }
-            if(LuckMoneyService.waitGetMoneyTime<MAX_WAIT_WINDOW_TIME){
-                LuckMoneyService.waitGetMoneyTime=LuckMoneyService.waitGetMoneyTime+100;
+            if(WxScanAccessibilityService.waitGetMoneyTime<MAX_WAIT_WINDOW_TIME){
+                WxScanAccessibilityService.waitGetMoneyTime= WxScanAccessibilityService.waitGetMoneyTime+100;
             }else {
-                LuckMoneyService.waitGetMoneyTime=0;
+                WxScanAccessibilityService.waitGetMoneyTime=0;
             }
-            tvOpenTime.setText(LuckMoneyService.waitGetMoneyTime+"ms");
+            tvOpenTime.setText(WxScanAccessibilityService.waitGetMoneyTime+"ms");
         });
+
+
+        startJob();
 
     }
 
+    PollingUtil pollingUtil = new PollingUtil(new Handler());
+    /**
+     * 开启job
+     */
+    public void startJob(){
+        //每3秒打印一次日志
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                Log.e("MainActivity", "----------handler 定时轮询任务----------");
+                if (WxScanAccessibilityService.mService!=null) {
+//                    LuckMoneyService.mService.performScrollBackward();
+                }
+
+            }
+        };
+//        pollingUtil.startPolling(runnable, 3000, true);
+
+
+    }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if(LuckMoneyService.needSetTime==-1){
-            LuckMoneyService.needSetTime=SharedPreferencesUtil.getInt(NEED_SET_TIME,-1);
+        if(WxScanAccessibilityService.needSetTime==-1){
+            WxScanAccessibilityService.needSetTime=SharedPreferencesUtil.getInt(NEED_SET_TIME,-1);
         }
-        swWx.setChecked(AccessbilityUtil.isAccessibilitySettingsOn(this, LuckMoneyService.class));
-        if(LuckMoneyService.needSetTime==1){
+        swWx.setChecked(AccessbilityUtil.isAccessibilitySettingsOn(this, WxScanAccessibilityService.class));
+        if(WxScanAccessibilityService.needSetTime==1){
             tvDevice.setText("当前设备需要进行下面两项时间设置以达到最佳状态，值的大小不会影响抢红包的速度，值越大越能确保抢到红包，但是值太大返回流程可能会出问题，无法继续抢下一个");
-        }else if(LuckMoneyService.needSetTime==0){
+        }else if(WxScanAccessibilityService.needSetTime==0){
             tvDevice.setText("当前设备不需要关心下面两项设置");
         }
-        SharedPreferencesUtil.save(NEED_SET_TIME,LuckMoneyService.needSetTime);
+        SharedPreferencesUtil.save(NEED_SET_TIME, WxScanAccessibilityService.needSetTime);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        SharedPreferencesUtil.save(WAIT_WINDOW_TIME,LuckMoneyService.waitWindowTime);
-        SharedPreferencesUtil.save(WAIT_GET_MONEY_TIME,LuckMoneyService.waitGetMoneyTime);
+        SharedPreferencesUtil.save(WAIT_WINDOW_TIME, WxScanAccessibilityService.waitWindowTime);
+        SharedPreferencesUtil.save(WAIT_GET_MONEY_TIME, WxScanAccessibilityService.waitGetMoneyTime);
     }
+
+
 }

@@ -21,6 +21,13 @@ import java.util.List;
 public abstract class BaseAccessbilityService extends AccessibilityService {
 
     /**
+     * list 节点
+     */
+    public AccessibilityNodeInfo nodeInfoList;
+
+    public static String packageList = "android.widget.ListView";
+
+    /**
      * 模拟触摸事件
      *
      * @param x
@@ -86,23 +93,29 @@ public abstract class BaseAccessbilityService extends AccessibilityService {
      * 模拟下滑操作
      */
     public void performScrollBackward() {
-        try {
+       /* try {
             Thread.sleep(500);
         } catch (InterruptedException e) {
             e.printStackTrace();
-        }
+        }*/
         performGlobalAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD);
+        if (nodeInfoList!=null) {
+            nodeInfoList.performAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD);
+        }
     }
 
     /**
      * 模拟上滑操作
      */
     public void performScrollForward() {
-        try {
+      /*  try {
             Thread.sleep(500);
         } catch (InterruptedException e) {
             e.printStackTrace();
-        }
+        }*/
+//        if (nodeInfoList!=null) {
+//            nodeInfoList.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD);
+//        }
         performGlobalAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD);
     }
 
@@ -161,7 +174,22 @@ public abstract class BaseAccessbilityService extends AccessibilityService {
         return null;
     }
 
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
+    public AccessibilityNodeInfo findListView() {
+        AccessibilityNodeInfo accessibilityNodeInfo = getRootInActiveWindow();
+        if (accessibilityNodeInfo == null) {
+            return null;
+        }
 
+        for (int i =0;i<accessibilityNodeInfo.getChildCount();i++){
+            AccessibilityNodeInfo childeNode = accessibilityNodeInfo.getChild(i);
+            CharSequence packageName = childeNode.getPackageName();
+            if (packageList.equalsIgnoreCase(packageName.toString())){
+                nodeInfoList = childeNode;
+            }
+        }
+        return nodeInfoList;
+    }
     /**
      * 查找对应ID的View
      *
@@ -174,6 +202,8 @@ public abstract class BaseAccessbilityService extends AccessibilityService {
         if (accessibilityNodeInfo == null) {
             return null;
         }
+
+
         List<AccessibilityNodeInfo> nodeInfoList = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(id);
         if (nodeInfoList != null && !nodeInfoList.isEmpty()) {
             for (AccessibilityNodeInfo nodeInfo : nodeInfoList) {
