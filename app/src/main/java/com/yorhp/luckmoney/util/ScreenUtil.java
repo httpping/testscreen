@@ -14,12 +14,14 @@ public class ScreenUtil {
 
     public static int SCREEN_WIDTH = 0;
     public static int SCREEN_HEIGHT = 0;
+    public static int density;
 
     //保存屏幕大小
     public static void getScreenSize(Context context) {
         DisplayMetrics metrics = context.getResources().getDisplayMetrics();
         SCREEN_WIDTH = metrics.widthPixels;//获取到的是px，像素，绝对像素，需要转化为dpi
         SCREEN_HEIGHT = getRealHeight(context);
+        density = metrics.densityDpi;
     }
 
     //获取正确的屏幕高度

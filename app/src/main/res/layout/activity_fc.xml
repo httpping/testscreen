@@ -108,6 +108,10 @@
                 android:text="请开启辅助功能" />
 
         </LinearLayout>
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/img_show"></ImageView>
         </LinearLayout>
 
     </androidx.core.widget.NestedScrollView>
