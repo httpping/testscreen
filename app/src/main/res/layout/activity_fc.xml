@@ -35,36 +35,49 @@
                 android:checked="false" />
         </LinearLayout>
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="15dp"
+            android:background="@color/white"
+            android:orientation="horizontal"
+            android:padding="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="开启截屏" />
+
+            <Switch
+                android:id="@+id/openJp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:checked="false" />
+        </LinearLayout>
+
 
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical">
+            android:layout_height="wrap_content"
+            android:layout_marginTop="15dp"
+            android:background="@color/white"
+            android:orientation="horizontal"
+            android:padding="20dp">
 
-            <LinearLayout
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="开启微信截屏" />
+
+            <Switch
+                android:id="@+id/swWx"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:background="@color/white"
-                android:orientation="horizontal"
-                android:padding="20dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="开启浮窗" />
-
-                <Switch
-                    android:id="@+id/swWx"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:checked="false" />
-
-            </LinearLayout>
-
-
+                android:checked="false" />
         </LinearLayout>
+
+
         <LinearLayout
             android:id="@+id/ll_openwx"
             android:layout_width="match_parent"
@@ -72,6 +85,7 @@
             android:layout_marginTop="15dp"
             android:background="@color/white"
             android:orientation="horizontal"
+            android:visibility="gone"
             android:padding="20dp">
 
             <TextView

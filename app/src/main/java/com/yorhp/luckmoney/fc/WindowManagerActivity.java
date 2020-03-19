@@ -1,8 +1,10 @@
 package com.yorhp.luckmoney.fc;
 
+import android.Manifest;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
@@ -26,12 +28,14 @@ import com.yorhp.luckmoney.fc.WindowManager.WindowController;
 import com.yorhp.luckmoney.fc.WindowManager.WindowUtil;
 import com.yorhp.luckmoney.service.WxScanAccessibilityService;
 import com.yorhp.luckmoney.util.AccessbilityUtil;
+import com.yorhp.luckmoney.util.FileUtil;
 import com.yorhp.luckmoney.util.ScreenUtil;
 
 
 import java.nio.ByteBuffer;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 import static android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD;
 import static android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD;
@@ -46,19 +50,30 @@ public class WindowManagerActivity extends AppCompatActivity implements View.OnC
     private static final int REQUEST_MEDIA_PROJECTION = 300;
     Switch aSwitch;
     Switch startFz;
-
+    Switch startJp;
     //截屏用
     private MediaProjection mMediaProjection;
     private ImageReader mImageReader;
     private VirtualDisplay mVirtualDisplay;
 
+    private static String[] PERMISSIONS_STORAGE = {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE};
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, PERMISSIONS_STORAGE,10010);
+        }
+
         ScreenUtil.getScreenSize(this);
         setContentView(R.layout.activity_fc);
         startFz = findViewById(R.id.start_fz);
         aSwitch = findViewById(R.id.swWx);
+        startJp = findViewById(R.id.openJp);
         aSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -69,6 +84,20 @@ public class WindowManagerActivity extends AppCompatActivity implements View.OnC
                 }
             }
         });
+
+        startJp.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked){
+                    startJP();
+                }else {
+                    mImageReader = null;
+                    if (WxScanAccessibilityService.mService!=null){
+                        WxScanAccessibilityService.mService.mImageReader = null;
+                    }
+                }
+            }
+        } );
 
         startFz.setOnClickListener((v) -> {
             startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
@@ -101,6 +130,7 @@ public class WindowManagerActivity extends AppCompatActivity implements View.OnC
         }
         //开启悬浮窗
         WindowController.getInstance().showThumbWindow(this);
+        openWx();
     }
 
     @Override
@@ -122,6 +152,9 @@ public class WindowManagerActivity extends AppCompatActivity implements View.OnC
                 mVirtualDisplay = mMediaProjection.createVirtualDisplay("screen-mirror",
                         ScreenUtil.SCREEN_WIDTH, ScreenUtil.SCREEN_HEIGHT, ScreenUtil.density,       DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
                         mImageReader.getSurface(), null, null);
+                if (WxScanAccessibilityService.mService!=null) {
+                    WxScanAccessibilityService.mService.mImageReader = mImageReader;
+                }
                 break;
         }
     }
@@ -149,7 +182,12 @@ public class WindowManagerActivity extends AppCompatActivity implements View.OnC
                 close_window(null);
                 mHandler.sendEmptyMessageDelayed(100,1000);
             }else {
-                toast("请检查辅助功能，或者滑动页面。");
+
+                if (WxScanAccessibilityService.mService == null){
+                    toast("请重启辅助功能");
+                }else {
+                    toast("请重新切换页面，或手动滑动页面");
+                }
             }
         }
     }
@@ -173,27 +211,30 @@ public class WindowManagerActivity extends AppCompatActivity implements View.OnC
 
     private void openWx() {
 
+        if(WxScanAccessibilityService.mService!=null){
+            WxScanAccessibilityService.mService.scan_type = jieping_msg;
+        }
+
         //打开微信
-      /*  String weChatPackageName = "com.tencent.mm";
+        String weChatPackageName = "com.tencent.mm";
         Intent intent = new Intent(Intent.ACTION_MAIN);
         intent.addCategory(Intent.CATEGORY_LAUNCHER);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         ComponentName cn = new ComponentName(weChatPackageName, "com.tencent.mm.ui.LauncherUI");
         intent.setComponent(cn);
-        startActivity(intent);*/
+        startActivity(intent);
 
-       if (mImageReader == null){
+      /* if (mImageReader == null){
            startJP();
        }else {
            jiepin();
-       }
+       }*/
 
     }
     MediaProjectionManager mMediaProjectionManager;
     public void startJP(){
         mMediaProjectionManager = (MediaProjectionManager)getApplication().getSystemService(Context.MEDIA_PROJECTION_SERVICE);
         startActivityForResult(mMediaProjectionManager.createScreenCaptureIntent(), REQUEST_MEDIA_PROJECTION);
-
     }
 
 
@@ -202,16 +243,22 @@ public class WindowManagerActivity extends AppCompatActivity implements View.OnC
     protected void onResume() {
         super.onResume();
 
-        startFz.setChecked(AccessbilityUtil.isAccessibilitySettingsOn(this, WxScanAccessibilityService.class));
+        startFz.setChecked(AccessbilityUtil.isAccessibilitySettingsOn(this, WxScanAccessibilityService.class) && WxScanAccessibilityService.mService!=null);
 
-
+        if (WxScanAccessibilityService.mService!=null && WxScanAccessibilityService.mService.mImageReader!=null) {
+            startJp.setChecked(true);
+        }else {
+            startJp.setChecked(false);
+        }
     }
 
 
+    /**
+     * 截屏
+     */
     public void jiepin(){
 //        strDate = dateFormat.format(new java.util.Date());
 //        nameImage = pathImage+strDate+".png";
-
         Image image = mImageReader.acquireLatestImage();
         int width = image.getWidth();
         int height = image.getHeight();
@@ -224,9 +271,9 @@ public class WindowManagerActivity extends AppCompatActivity implements View.OnC
         bitmap.copyPixelsFromBuffer(buffer);
         bitmap = Bitmap.createBitmap(bitmap, 0, 0,width, height);
         image.close();
-
-        ImageView imageView =findViewById(R.id.img_show);
-        imageView.setImageBitmap(bitmap);
+        FileUtil.saveBitmapToSDCard(bitmap,System.currentTimeMillis()+"");
+//        ImageView imageView =findViewById(R.id.img_show);
+//        imageView.setImageBitmap(bitmap);
 
     }
 }

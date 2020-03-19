@@ -1,7 +1,10 @@
 package com.yorhp.luckmoney.service;
 
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
+import android.media.Image;
+import android.media.ImageReader;
 import android.nfc.Tag;
 import android.os.Handler;
 import android.os.Message;
@@ -13,10 +16,13 @@ import android.view.accessibility.AccessibilityEvent;
 import android.widget.Button;
 import android.widget.Toast;
 
+import com.yorhp.luckmoney.util.FileUtil;
 import com.yorhp.luckmoney.util.PollingUtil;
 import com.yorhp.luckmoney.util.ScreenUtil;
 
 import org.w3c.dom.ls.LSException;
+
+import java.nio.ByteBuffer;
 
 import static android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD;
 
@@ -183,6 +189,8 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
     public int  scrollWhat = 10010;
     //滑动方向
     public int action ;
+    public ImageReader mImageReader;
+
     /**
      * 截屏
      */
@@ -198,6 +206,9 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
                 e.printStackTrace();
             }
             Log.d(TAG,"循环:" +count++);
+            if (mImageReader!=null){
+                jiepin();
+            }
             nodeInfoList.performAction(scroll);
         }
     }
@@ -225,8 +236,6 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
 
 
 
-
-
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
@@ -246,7 +255,30 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
     }
 
 
+    /**
+     * 截屏
+     */
+    public void jiepin(){
+//        strDate = dateFormat.format(new java.util.Date());
+//        nameImage = pathImage+strDate+".png";
+        Image image = mImageReader.acquireLatestImage();
+        int width = image.getWidth();
+        int height = image.getHeight();
+        final Image.Plane[] planes = image.getPlanes();
+        final ByteBuffer buffer = planes[0].getBuffer();
+        int pixelStride = planes[0].getPixelStride();
+        int rowStride = planes[0].getRowStride();
+        int rowPadding = rowStride - pixelStride * width;
+        Bitmap bitmap = Bitmap.createBitmap(width+rowPadding/pixelStride, height, Bitmap.Config.ARGB_8888);
+        bitmap.copyPixelsFromBuffer(buffer);
+        bitmap = Bitmap.createBitmap(bitmap, 0, 0,width, height);
+        image.close();
+        FileUtil.saveBitmapToSDCard(bitmap,System.currentTimeMillis()+"");
+        Log.i(TAG,"捷帕尼开始");
+//        ImageView imageView =findViewById(R.id.img_show);
+//        imageView.setImageBitmap(bitmap);
 
+    }
 
 
 }
