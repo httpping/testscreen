@@ -199,11 +199,15 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
         isStartJiepin = true;
         action = scroll;
         int count =0;
-        while (true && nodeInfoList!=null && !isend) {
+        while (true && nodeInfoList!=null && !isend ) {
             try {
                 Thread.sleep(2000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
+            }
+            //最大截屏数量
+            if (count>1000){
+                return;
             }
             Log.d(TAG,"循环:" +count++);
             if (mImageReader!=null){

@@ -85,6 +85,15 @@ public class WindowManagerActivity extends AppCompatActivity implements View.OnC
             }
         });
 
+        findViewById(R.id.btn_end).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (WxScanAccessibilityService.mService!=null){
+                    WxScanAccessibilityService.mService.isend= true;
+                }
+            }
+        });
+
         startJp.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -128,9 +137,17 @@ public class WindowManagerActivity extends AppCompatActivity implements View.OnC
             WindowUtil.jump2Setting(this, REQUEST_CODE);
             return;
         }
-        //开启悬浮窗
+
+        if (startJp.isChecked() && startFz.isChecked()){
+            openWx();
+        }else{
+            toast("确保所有准备操作都已处理");
+            return;
+        }
+            //开启悬浮窗
         WindowController.getInstance().showThumbWindow(this);
-        openWx();
+
+
     }
 
     @Override

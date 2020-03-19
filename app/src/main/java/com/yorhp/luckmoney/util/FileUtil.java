@@ -8,6 +8,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import javax.xml.xpath.XPath;
+
 public class FileUtil {
 
 
@@ -74,7 +76,9 @@ public class FileUtil {
      * @param imagename
      */
     public static String saveBitmapToSDCard(Bitmap bitmap, String imagename) {
-        String path = "/sdcard/" + "img-" + imagename + ".jpg";
+        String root = "/sdcard/aaaa/";
+        new File(root).mkdirs();
+        String path = root + "img-" + imagename + ".jpg";
         FileOutputStream fos = null;
         try {
             fos = new FileOutputStream(path);
