@@ -119,6 +119,10 @@ public class WindowManagerActivity extends AppCompatActivity implements View.OnC
                     toast("请重新开启辅助功能");
                     return;
                 }
+                if (WxScanAccessibilityService.mService.mImageReader == null){
+                    toast("没有开启截屏");
+                    return;
+                }
                 WxScanAccessibilityService.mService.scan_type = jieping_msg;
                 //打开微信，开启服装
                 openWx();
@@ -138,15 +142,18 @@ public class WindowManagerActivity extends AppCompatActivity implements View.OnC
             return;
         }
 
-        if (startJp.isChecked() && startFz.isChecked()){
-            openWx();
-        }else{
-            toast("确保所有准备操作都已处理");
+        if (!startJp.isChecked()){
+            toast("开启截屏");
             return;
         }
-            //开启悬浮窗
+        if (!startFz.isChecked() || WxScanAccessibilityService.mService== null){
+            toast("开启服务");
+            return;
+        }
+        //开启悬浮窗
         WindowController.getInstance().showThumbWindow(this);
 
+        openWx();
 
     }
 
@@ -194,13 +201,15 @@ public class WindowManagerActivity extends AppCompatActivity implements View.OnC
     public void onClick(View v) {
         //开始按钮
         if (v.getId() == R.id.btn_start){
-            if (WxScanAccessibilityService.mService!=null && WxScanAccessibilityService.mService.nodeInfoList!=null) {
+            if (WxScanAccessibilityService.mService!=null && WxScanAccessibilityService.mService.nodeInfoList!=null && startJp.isChecked()) {
                 toast("准备开始了");
                 close_window(null);
                 mHandler.sendEmptyMessageDelayed(100,1000);
             }else {
 
-                if (WxScanAccessibilityService.mService == null){
+                if (!startJp.isChecked()){
+                    toast("未开启截屏");
+                }else if (WxScanAccessibilityService.mService == null){
                     toast("请重启辅助功能");
                 }else {
                     toast("请重新切换页面，或手动滑动页面");
@@ -217,9 +226,22 @@ public class WindowManagerActivity extends AppCompatActivity implements View.OnC
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
+
+                        //朋友圈
+
+                        int id = WindowController.getInstance().radioGroup.getCheckedRadioButtonId();
+                        int action ;
+                        if (id == R.id.rd_xx){
+                            action = ACTION_SCROLL_BACKWARD;
+                        }else {
+                            action = ACTION_SCROLL_FORWARD;
+                        }
                         WxScanAccessibilityService.mService.isend =false;
+                        //开始截屏
+                        WxScanAccessibilityService.mService.isStartJiepin = true;
                         //页面向上滑动，截图, 微信就修改滑动方向就可以了
-                        WxScanAccessibilityService.mService.jieping(ACTION_SCROLL_BACKWARD);
+                        WxScanAccessibilityService.mService.jieping(action);
+
                     }
                 }).start();
             }
@@ -266,6 +288,12 @@ public class WindowManagerActivity extends AppCompatActivity implements View.OnC
             startJp.setChecked(true);
         }else {
             startJp.setChecked(false);
+        }
+
+        if (WxScanAccessibilityService.mService!=null && WxScanAccessibilityService.mService.isStartJiepin) {
+            aSwitch.setChecked(true);
+        }else {
+            aSwitch.setChecked(false);
         }
     }
 

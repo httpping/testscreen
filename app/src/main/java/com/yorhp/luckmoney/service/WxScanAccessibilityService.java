@@ -16,6 +16,8 @@ import android.view.accessibility.AccessibilityEvent;
 import android.widget.Button;
 import android.widget.Toast;
 
+import com.yorhp.luckmoney.fc.WindowManager.WindowTipController;
+import com.yorhp.luckmoney.util.AppUtils;
 import com.yorhp.luckmoney.util.FileUtil;
 import com.yorhp.luckmoney.util.PollingUtil;
 import com.yorhp.luckmoney.util.ScreenUtil;
@@ -23,7 +25,9 @@ import com.yorhp.luckmoney.util.ScreenUtil;
 import org.w3c.dom.ls.LSException;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import static android.view.accessibility.AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED;
 import static android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD;
 
 /**
@@ -73,22 +77,7 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
     private static final String WX_PACKAGE_NAME = "com.tencent.mm";
 
 
-    /**
-     * 等待弹窗弹出时间
-     */
-    public static int waitWindowTime=150;
-
-
-    /**
-     * 等待红包领取时间
-     */
-    public static int waitGetMoneyTime=700;
-
-
-    /**
-     * 当前机型是否需要配置时间，是否能获取到弹窗
-     */
-    public static int needSetTime=-1;
+    String MY_APP_PACKAGE_NAME ;
 
     /**
      * 获取屏幕宽高
@@ -96,39 +85,60 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
     private int screenWidth = ScreenUtil.SCREEN_WIDTH;
     private int screenHeight = ScreenUtil.SCREEN_HEIGHT;
 
-    /**
-     * 计算领取红包的时间
-     */
-    private static long luckMoneyComingTime;
+    AtomicInteger count = new AtomicInteger(0);
+
 
     /**
-     * 是否在领取详情页
+     * 开始截屏
      */
-    private static boolean inMoneyDetail=false;
-    private Button button;
 
-    /**
-     *  listitem数量
-     */
-    public int listItemCount =0;
-    /**
-     * 统计内容没变化次数
-     */
-    public int itemNoChangeCount = 0 ;
+    String  androidSystemUI =  "com.android.systemui";
 
-    /**
-     * 内容没变化最大尝试次数
-     */
-    public int maxItemNoChange  = 10 ;
 
-    public int  count  = 0 ;
+    long  endWindowContextChangeTime ;
+
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
 
 
+
         String packageName = event.getPackageName().toString();
-        if (!packageName.contains(WX_PACKAGE_NAME)) {
+
+        //窗口改变了,开始后窗体改变，就结束
+        if (event.getEventType() == TYPE_WINDOW_STATE_CHANGED && isStartJiepin){
+            Log.d(TAG,"窗口改变了,有界面操作");
+            if (!packageName.equalsIgnoreCase(MY_APP_PACKAGE_NAME)) {
+                isStartJiepin = false;
+                isend =true;
+//                Toast.makeText(getApplicationContext(), "有窗口改变", Toast.LENGTH_SHORT).show();
+                mHandler.sendEmptyMessage(1002);
+            }
+            if (packageName.equalsIgnoreCase(WX_PACKAGE_NAME)){
+                Log.d(TAG,"wxx窗口改变了,有界面操作");
+
+            }
+        }
+
+        if (event.getEventType()== AccessibilityEvent.TYPE_WINDOWS_CHANGED){
+            Log.d(TAG,"窗口改变TYPE_WINDOWS_CHANGED");
+        }
+
+        if (isStartJiepin && !isend  && event.getEventType() == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED && packageName.equalsIgnoreCase(WX_PACKAGE_NAME)){
+            if (event.getClassName().equals(packageList)) {
+                Log.d(TAG, "TYPE_WINDOW_CONTENT_CHANGED");
+            }
+            endWindowContextChangeTime = System.currentTimeMillis()/1000;
+        }
+
+        if (packageName.equalsIgnoreCase(androidSystemUI)){
+            return;
+        }
+        if (packageName.equalsIgnoreCase("com.android.settings")){
+            return;
+        }
+
+        if (!packageName.contains(WX_PACKAGE_NAME) && !packageName.isEmpty()) {
             //不是微信就退出
             isInChatList=false;
             return;
@@ -142,34 +152,7 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
                     String className = event.getClassName().toString();
                 if (packageList.equalsIgnoreCase(className)) {
                     nodeInfoList = event.getSource();
-
-                    if (listItemCount == 0){
-                        listItemCount = event.getItemCount();
-                    }else {
-                        //内容数量没变化
-                        if (listItemCount == event.getItemCount()){
-                            itemNoChangeCount++;
-                        }else {
-                            listItemCount = event.getItemCount();
-                            itemNoChangeCount = 0;
-                            //内容变化了。
-                            Log.d(TAG+"-变化",count+++"页");
-                        }
-
-                        //叛变结束标志
-                        if (itemNoChangeCount>=maxItemNoChange){
-                            isend = false;
-                        }
-                    }
-
-
-//                    Toast.makeText(this,"LENGTH_SHORT",Toast.LENGTH_LONG).show();
-                    //结束了
-                    if (event.getFromIndex()<=0){
-                        Log.d(TAG,"结束了:"+event.getFromIndex() +" ev:" +event.getToIndex() +"");
-                    }
                 }
-
             }
         }
 
@@ -195,24 +178,41 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
      * 截屏
      */
     public void jieping(int scroll){
-
-        isStartJiepin = true;
         action = scroll;
-        int count =0;
-        while (true && nodeInfoList!=null && !isend ) {
+        //最大间隔5S
+        int maxJgTime =5;
+        endWindowContextChangeTime = System.currentTimeMillis()/1000;
+        count = new AtomicInteger(0);
+        while (true && nodeInfoList!=null && !isend && mService!=null && isStartJiepin) {
+            long time = System.currentTimeMillis()/1000 - endWindowContextChangeTime;
+            if (time > maxJgTime){
+                isStartJiepin = false;
+                isend = true;
+                mHandler.sendEmptyMessage(1002);
+                return;
+            }
             try {
                 Thread.sleep(2000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
             //最大截屏数量
-            if (count>1000){
+            if (count.intValue()>1000){
                 return;
             }
-            Log.d(TAG,"循环:" +count++);
+            Log.d(TAG,"循环:" +count.incrementAndGet());
+
             if (mImageReader!=null){
                 jiepin();
+                mHandler.sendEmptyMessage(1000);
             }
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            mHandler.sendEmptyMessage(1001);
+
             nodeInfoList.performAction(scroll);
         }
     }
@@ -228,6 +228,15 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
                      nodeInfoList.performAction(action);
                  }
              }
+             if (msg.what==1000){
+                 WindowTipController.getInstance().showThumbWindow(null,"截屏第"+count.intValue()+"页成功");
+             }
+            if (msg.what==1001){
+                WindowTipController.getInstance().destroyThumbWindow();
+            }
+            if (msg.what == 1002){
+                Toast.makeText(getApplicationContext(),"截屏结束了",Toast.LENGTH_SHORT).show();
+            }
         }
     };
 
@@ -235,7 +244,9 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
 
     @Override
     public void onInterrupt() {
-
+        mService = null;
+        isend =true;
+        isStartJiepin=false;
     }
 
 
@@ -243,6 +254,8 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
+
+        MY_APP_PACKAGE_NAME = AppUtils.getPackageName(this);
 
 //        Toast.makeText(getApplication(),"辅助服务开启成功",Toast.LENGTH_SHORT).show();
         mService = this;
@@ -278,7 +291,7 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
         bitmap = Bitmap.createBitmap(bitmap, 0, 0,width, height);
         image.close();
         FileUtil.saveBitmapToSDCard(bitmap,System.currentTimeMillis()+"");
-        Log.i(TAG,"捷帕尼开始");
+        Log.i(TAG,"捷帕尼开始"+count.intValue());
 //        ImageView imageView =findViewById(R.id.img_show);
 //        imageView.setImageBitmap(bitmap);
 

@@ -11,8 +11,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.LinearLayout;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
+import android.widget.TextView;
 
 import com.yorhp.luckmoney.MyApplication;
 import com.yorhp.luckmoney.R;
@@ -20,12 +19,13 @@ import com.yorhp.luckmoney.fc.WindowManager.view.SmallWindowView;
 
 
 /**
+ * 提醒
  */
 
-public class WindowController implements View.OnTouchListener {
+public class WindowTipController implements View.OnTouchListener {
 
     @SuppressLint("StaticFieldLeak")
-    private static WindowController instance;
+    private static WindowTipController instance;
 
     private WindowManager windowManager;
 
@@ -34,16 +34,16 @@ public class WindowController implements View.OnTouchListener {
     private Context mContext;
 
     private SmallWindowView sys_view;
-    public RadioGroup radioGroup;
-    private WindowController() {
+    TextView startTip;
+    private WindowTipController() {
         this.mContext = MyApplication.getApplication();
     }
 
-    public static WindowController getInstance() {
+    public static WindowTipController getInstance() {
         if (instance == null) {
-            synchronized (WindowController.class) {
+            synchronized (WindowTipController.class) {
                 if (instance == null) {
-                    instance = new WindowController();
+                    instance = new WindowTipController();
                 }
             }
         }
@@ -55,36 +55,20 @@ public class WindowController implements View.OnTouchListener {
      * 显示悬浮窗
      */
     @SuppressLint("ClickableViewAccessibility")
-    public void showThumbWindow(View.OnClickListener clickListener) {
-        if (sys_view != null) return;
+    public void showThumbWindow(View.OnClickListener clickListener,String msg) {
+        if (sys_view != null) {
+            return;
+        }
         sys_view = new SmallWindowView(mContext);
         sys_view.setOnTouchListener(this);
-        sys_view.setBackgroundResource(R.color.white);
+        sys_view.setBackgroundResource(R.color.red);
         sys_view.setOrientation(LinearLayout.VERTICAL);
 
-        radioGroup = new RadioGroup(mContext);
-        RadioButton radioButton = new RadioButton(mContext);
-        radioButton.setId(R.id.rd_pyq);
-        radioButton.setText("朋友圈");
-        radioGroup.addView(radioButton,0);
-
-        RadioButton radioButtonMSG = new RadioButton(mContext);
-        radioButtonMSG.setText("消息");
-        radioButtonMSG.setId(R.id.rd_xx);
-        radioGroup.addView(radioButtonMSG,0);
-
-        radioGroup.check(R.id.rd_xx);
-
-        sys_view.addView(radioGroup);
-
-        Button startBtn = new Button(mContext);
-        startBtn.setId(R.id.btn_start);
-        startBtn.setText("开始");
-        startBtn.setOnClickListener(clickListener);
-        sys_view.addView(startBtn);
-//        Button endBtn = new Button(mContext);
-//        endBtn.setText("结束");
-//        sys_view.addView(endBtn);
+        startTip = new TextView(mContext);
+        if (msg!=null) {
+            startTip.setText(msg);
+        }
+        sys_view.addView(startTip);
         windowManager = (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);
         int screenWidth = 0, screenHeight = 0;
         if (windowManager != null) {
@@ -111,8 +95,8 @@ public class WindowController implements View.OnTouchListener {
             layoutParams.gravity = Gravity.START | Gravity.TOP;
             //背景设置成透明
             layoutParams.format = PixelFormat.TRANSPARENT;
-            layoutParams.x = screenWidth;
-            layoutParams.y = screenHeight / 2;
+            layoutParams.x = 0;
+            layoutParams.y = 100;
             //将View添加到屏幕上
             windowManager.addView(sys_view, layoutParams);
         }
