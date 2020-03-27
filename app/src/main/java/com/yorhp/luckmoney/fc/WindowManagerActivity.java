@@ -132,7 +132,7 @@ public class WindowManagerActivity extends AppCompatActivity implements View.OnC
     }
 
     /**
-     * 开启浮动窗口，方便操作
+     * 开启浮动窗口，方便操作x
      * @param view
      */
     public void start_window(View view) {
