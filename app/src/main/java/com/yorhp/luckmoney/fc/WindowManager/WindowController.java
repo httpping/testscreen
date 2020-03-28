@@ -65,11 +65,11 @@ public class WindowController implements View.OnTouchListener {
         radioGroup = new RadioGroup(mContext);
         RadioButton radioButton = new RadioButton(mContext);
         radioButton.setId(R.id.rd_pyq);
-        radioButton.setText("朋友圈");
+        radioButton.setText("向下");
         radioGroup.addView(radioButton,0);
 
         RadioButton radioButtonMSG = new RadioButton(mContext);
-        radioButtonMSG.setText("消息");
+        radioButtonMSG.setText("向上");
         radioButtonMSG.setId(R.id.rd_xx);
         radioGroup.addView(radioButtonMSG,0);
 
