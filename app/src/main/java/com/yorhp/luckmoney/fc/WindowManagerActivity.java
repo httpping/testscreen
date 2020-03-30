@@ -201,12 +201,17 @@ public class WindowManagerActivity extends AppCompatActivity implements View.OnC
     public void onClick(View v) {
         //开始按钮
         if (v.getId() == R.id.btn_start){
-            if (WxScanAccessibilityService.mService!=null && WxScanAccessibilityService.mService.nodeInfoList!=null && startJp.isChecked()) {
-                toast("准备开始了");
+            int id = WindowController.getInstance().radioGroup.getCheckedRadioButtonId();
+
+            if (WxScanAccessibilityService.mService!=null && (WxScanAccessibilityService.mService.nodeInfoList!=null ) && startJp.isChecked()) {
+                toast("竖向准备开始了");
                 close_window(null);
                 mHandler.sendEmptyMessageDelayed(100,1000);
-            }else {
-
+            }else if (WxScanAccessibilityService.mService!=null && (WxScanAccessibilityService.mService.nodeInfoWxViewPager!=null ) && startJp.isChecked()){
+                toast("横向准备开始了");
+                close_window(null);
+                mHandler.sendEmptyMessageDelayed(100,1000);
+            } else {
                 if (!startJp.isChecked()){
                     toast("未开启截屏");
                 }else if (WxScanAccessibilityService.mService == null){
@@ -233,14 +238,24 @@ public class WindowManagerActivity extends AppCompatActivity implements View.OnC
                         int action ;
                         if (id == R.id.rd_xx){
                             action = ACTION_SCROLL_BACKWARD;
+                        }else if (id== R.id.rd_pyq){
+                            action = ACTION_SCROLL_FORWARD;
+                        }else if (id == R.id.rd_pyq_detail){
+                            action = ACTION_SCROLL_FORWARD   ;
                         }else {
                             action = ACTION_SCROLL_FORWARD;
                         }
+
                         WxScanAccessibilityService.mService.isend =false;
                         //开始截屏
                         WxScanAccessibilityService.mService.isStartJiepin = true;
-                        //页面向上滑动，截图, 微信就修改滑动方向就可以了
-                        WxScanAccessibilityService.mService.jieping(action);
+
+                        if (id != R.id.rd_pyq_detail) {
+                            //页面向上滑动，截图, 微信就修改滑动方向就可以了
+                            WxScanAccessibilityService.mService.jieping(action);
+                        }else {
+                            WxScanAccessibilityService.mService.jiepingWxViewPager(action);
+                        }
 
                     }
                 }).start();

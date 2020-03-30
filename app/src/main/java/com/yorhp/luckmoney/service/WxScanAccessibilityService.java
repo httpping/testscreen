@@ -62,7 +62,7 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
      */
     public boolean isend = false;
 
-    public static final String TAG="LuckMoneyService";
+    public static final String TAG="WxScanAccessibilityService";
 
 
     /**
@@ -153,6 +153,9 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
                 if (packageList.equalsIgnoreCase(className)) {
                     nodeInfoList = event.getSource();
                 }
+                if (packageViewPager.equals(className)){
+                    nodeInfoWxViewPager = event.getSource();
+                }
             }
         }
 
@@ -170,6 +173,8 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
 
     public boolean isStartJiepin = false;
     public int  scrollWhat = 10010;
+    public int  scrollWhatWXViewPager  = 10011;
+
     //滑动方向
     public int action ;
     public ImageReader mImageReader;
@@ -217,6 +222,51 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
         }
     }
 
+
+    /**
+     * 截屏
+     */
+    public void jiepingWxViewPager(int scroll){
+        action = scroll;
+        //最大间隔5S
+        int maxJgTime =7;
+        endWindowContextChangeTime = System.currentTimeMillis()/1000;
+        count = new AtomicInteger(0);
+        while (true && nodeInfoWxViewPager!=null && !isend && mService!=null && isStartJiepin) {
+            long time = System.currentTimeMillis()/1000 - endWindowContextChangeTime;
+            if (time > maxJgTime){
+                isStartJiepin = false;
+                isend = true;
+                mHandler.sendEmptyMessage(1002);
+                return;
+            }
+            try {
+                //多个时间加载页面
+                Thread.sleep(4000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            //最大截屏数量
+            if (count.intValue()>1000){
+                return;
+            }
+            Log.d(TAG,"循环:" +count.incrementAndGet());
+
+            if (mImageReader!=null){
+                jiepin();
+                mHandler.sendEmptyMessage(1000);
+            }
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            mHandler.sendEmptyMessage(1001);
+
+            nodeInfoWxViewPager.performAction(scroll);
+        }
+    }
+
     /**
      * 异步滑动
      */
@@ -226,6 +276,11 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
              if (msg.what == scrollWhat){
                  if (nodeInfoList!=null) {
                      nodeInfoList.performAction(action);
+                 }
+             }
+             if (msg.what == scrollWhatWXViewPager){
+                 if (nodeInfoWxViewPager !=null){
+                     nodeInfoWxViewPager.performAction(action);
                  }
              }
              if (msg.what==1000){

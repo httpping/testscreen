@@ -24,8 +24,12 @@ public abstract class BaseAccessbilityService extends AccessibilityService {
      * list 节点
      */
     public AccessibilityNodeInfo nodeInfoList;
+    public AccessibilityNodeInfo nodeInfoWxViewPager;
+
 
     public static String packageList = "android.widget.ListView";
+
+    public static String packageViewPager = "com.tencent.mm.ui.mogic.WxViewPager";
 
     /**
      * 模拟触摸事件

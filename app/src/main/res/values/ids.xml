@@ -4,5 +4,7 @@
     <item type="id" name="btn_start" />
     <item type="id" name="rd_xx" />
     <item type="id" name="rd_pyq" />
+    <item type="id" name="rd_pyq_detail" />
+
 
 </resources>
