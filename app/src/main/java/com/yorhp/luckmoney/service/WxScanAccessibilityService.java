@@ -13,10 +13,13 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Button;
 import android.widget.Toast;
 
 import com.yorhp.luckmoney.fc.WindowManager.WindowTipController;
+import com.yorhp.luckmoney.fc.WindowManager.WindowTxlController;
+import com.yorhp.luckmoney.txl.bean.WxUser;
 import com.yorhp.luckmoney.util.AppUtils;
 import com.yorhp.luckmoney.util.FileUtil;
 import com.yorhp.luckmoney.util.PollingUtil;
@@ -25,10 +28,15 @@ import com.yorhp.luckmoney.util.ScreenUtil;
 import org.w3c.dom.ls.LSException;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static android.view.accessibility.AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED;
+import static android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK;
 import static android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD;
+import static android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD;
 
 /**
  * 抢红包辅助
@@ -51,6 +59,13 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
      * 截屏朋友圈
      */
     public static final int jieping_pyq = 2;
+
+
+    /**
+     * 截屏朋友圈
+     */
+    public static final int txl = 3;
+
 
     /**
      * 运行类型
@@ -101,8 +116,6 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
 
-
-
         String packageName = event.getPackageName().toString();
 
         //窗口改变了,开始后窗体改变，就结束
@@ -116,7 +129,6 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
             }
             if (packageName.equalsIgnoreCase(WX_PACKAGE_NAME)){
                 Log.d(TAG,"wxx窗口改变了,有界面操作");
-
             }
         }
 
@@ -145,20 +157,6 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
         }
         isInChatList = true;
 
-        //消息扫描
-        if (jieping_msg == scan_type) {
-            if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
-                //当前类名,查找到list，执行定时任务job
-                    String className = event.getClassName().toString();
-                if (packageList.equalsIgnoreCase(className)) {
-                    nodeInfoList = event.getSource();
-                }
-                if (packageViewPager.equals(className)){
-                    nodeInfoWxViewPager = event.getSource();
-                }
-            }
-        }
-
 
         if (event.getRecordCount() !=0){
             Log.d(TAG,"event :"+event.getToIndex());
@@ -172,6 +170,7 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
 
 
     public boolean isStartJiepin = false;
+    public boolean isStartTxl = false;
     public int  scrollWhat = 10010;
     public int  scrollWhatWXViewPager  = 10011;
 
@@ -221,6 +220,13 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
             nodeInfoList.performAction(scroll);
         }
     }
+
+
+
+
+
+
+
 
 
     /**
@@ -296,6 +302,241 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
     };
 
 
+
+    /**
+     * 通讯录扫描
+     */
+    public List<WxUser> scanTxl(int scroll){
+
+        //切换通讯录
+        AccessibilityNodeInfo result = findViewByText("通讯录");
+        if (result == null){
+            showMessageToast("不在微信首页");
+            return null;
+        }
+        result.getParent().getParent().performAction(ACTION_CLICK);
+
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        //查找出所有的List
+        List<AccessibilityNodeInfo> listViews = new ArrayList<>();
+        findViewByType(packageViewPager,getRootInActiveWindow(),listViews);
+
+        if (listViews.size()!=1){
+            showMessageToast("不在微信首页");
+            return null;
+        }
+
+        //查找List
+        AccessibilityNodeInfo wxViewPager  =  listViews.get(0);
+        int vgCount = wxViewPager.getChildCount() ;
+        if (vgCount ==4) {
+            listViews.clear();
+            findViewByType(packageList, wxViewPager.getChild(1),listViews);
+            if (listViews.size()!=1){
+                showMessageToast("找不到通讯录view，确保在首页，并选择了通讯录");
+                return null;
+            }
+            txlNodeInfoList = listViews.get(0);
+        }
+
+        String listID = txlNodeInfoList.getViewIdResourceName();
+        List<WxUser> wxUsers = new ArrayList<>();
+        action = scroll;
+        //最大间隔5S
+        int maxJgTime =5;
+        endWindowContextChangeTime = System.currentTimeMillis()/1000;
+
+        boolean isContentChange ;
+        while (true && txlNodeInfoList!=null && !isend && mService!=null ) {
+//             txlNodeInfoList.refresh();
+            txlNodeInfoList.recycle();
+            txlNodeInfoList = findViewByID(listID);
+            int childCount = txlNodeInfoList.getChildCount();
+
+             for (int i =1 ;i<childCount;i++) {
+                 if (isend){
+                     return wxUsers;
+                 }
+                 AccessibilityNodeInfo child = txlNodeInfoList.getChild(i);
+                 Log.d(TAG,"index:"+ i );
+                 if (child == null){
+                     continue;
+                 }
+
+
+                 List<AccessibilityNodeInfo> endTextView = new ArrayList<>();
+                 findViewByType(textViewPacakge,child,endTextView);
+                 String endLab = "位联系人";
+                 for (AccessibilityNodeInfo textView :endTextView){
+                     String text =  textView.getText()==null?"":textView.getText().toString();
+                     if (text.trim().endsWith(endLab)){
+                         showMessageTip("已结束");
+                         //结束了
+                         return wxUsers;
+                     }
+                 }
+
+                 String userName = null;
+                 List<AccessibilityNodeInfo> views = new ArrayList<>();
+                 findViewByType(ViewPackage,child,views);
+                 for (AccessibilityNodeInfo textView :views){
+                     String text =  textView.getText()==null?"":textView.getText().toString();
+                     String contentDesc =  textView.getContentDescription()==null?"":textView.getContentDescription().toString();
+
+                     if (text.equalsIgnoreCase(contentDesc) && !text.equalsIgnoreCase("")){
+                         userName =text;
+                     }
+                 }
+
+                 int size  = child.getChildCount();
+                 child.performAction(ACTION_CLICK);
+                 try {
+                     Thread.sleep(1000);
+                 } catch (InterruptedException e) {
+                     e.printStackTrace();
+                 }
+
+                 //进入页面
+
+                 WxUser wxUser = parseYonghu(userName);
+                 wxUsers.add(wxUser);
+
+                 //查询算法内容有变化
+
+
+
+                 try {
+                     Thread.sleep((long) (200 + Math.random()*1000));
+                 } catch (InterruptedException e) {
+                     e.printStackTrace();
+                 }
+             }
+
+            txlNodeInfoList.performAction(ACTION_SCROLL_FORWARD);
+            try {
+                Thread.sleep((long) (1000 + Math.random()*1000));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        Log.d("wxuser",wxUsers.size()+"");
+        return wxUsers;
+    }
+
+
+    /**
+     * 判断是否包含
+     * @param wxUsers
+     * @param wxUser
+     * @return
+     */
+    public boolean containUser(List<WxUser> wxUsers,WxUser wxUser){
+
+        for (WxUser wxUser1 : wxUsers){
+            if (wxUser.user!=null && wxUser.user.equalsIgnoreCase(wxUser1.user)){
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+    public WxUser parseYonghu(String userName){
+        //查找出所有的List
+        List<AccessibilityNodeInfo> textViews = new ArrayList<>();
+        findViewByType(textViewPacakge,getRootInActiveWindow(),textViews);
+
+
+        List<AccessibilityNodeInfo> imageViews = new ArrayList<>();
+        findViewByType(imageViewPackage,getRootInActiveWindow(),imageViews);
+
+        String wxh = "微信号:";
+        String dq="地区:";
+        String xbn ="男";
+        String xbr = "女";
+        String goback = "返回";
+
+        WxUser wxUser = new WxUser();
+        for (AccessibilityNodeInfo textView :textViews){
+            String text =  textView.getText()==null?"":textView.getText().toString();
+            if (text.trim().startsWith(wxh)){
+                wxUser.user = text.replace(wxh,"").trim();
+            }
+            if (text.trim().startsWith(dq)){
+                wxUser.area = text.replace(dq,"").trim();
+            }
+        }
+
+        //性别获取
+        for (AccessibilityNodeInfo imageView :imageViews) {
+            String text =  imageView.getContentDescription()==null?"":imageView.getContentDescription().toString();
+            if (text.equalsIgnoreCase(xbn)){
+                wxUser.sex = xbn;
+            }
+            if (text.equalsIgnoreCase(xbr)){
+                wxUser.sex = xbr;
+            }
+
+        }
+        wxUser.name = userName;
+        showMessageTip("正在解析： "+wxUser.name +" 性别："+ wxUser.sex);
+        try {
+            Thread.sleep((long) (Math.random()*1000) +200);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        performGlobalAction(GLOBAL_ACTION_BACK);
+
+        try {
+            Thread.sleep((long) (1000 + Math.random()*1000));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return wxUser;
+
+    }
+
+    /**
+     * 异步滑动
+     */
+    Handler mScanTxlHandler = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            if (msg.what == 100){
+                AccessibilityNodeInfo nodeInfo = (AccessibilityNodeInfo) msg.obj;
+                nodeInfo.performAction(ACTION_CLICK);
+            }
+            if (msg.what==10001){
+                Toast.makeText(getBaseContext(),msg.obj.toString(),Toast.LENGTH_LONG).show();
+            }
+            if (msg.what==10002){
+                if (WindowTxlController.getInstance().tvRemind!=null){
+                    WindowTxlController.getInstance().tvRemind.setText(msg.obj.toString());
+                }
+            }
+
+        }
+    };
+
+
+
+    public void showMessageToast(String msg){
+            Message message = new Message();
+            message.what =10001;
+            message.obj = msg;//"不在微信首页";
+            mScanTxlHandler.sendMessage(message);
+    }
+    public void showMessageTip(String msg){
+        Message message = new Message();
+        message.what =10002;
+        message.obj = msg;//"不在微信首页";
+        mScanTxlHandler.sendMessage(message);
+    }
 
     @Override
     public void onInterrupt() {

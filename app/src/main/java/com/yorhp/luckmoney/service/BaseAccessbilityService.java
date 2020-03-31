@@ -26,10 +26,16 @@ public abstract class BaseAccessbilityService extends AccessibilityService {
     public AccessibilityNodeInfo nodeInfoList;
     public AccessibilityNodeInfo nodeInfoWxViewPager;
 
+    public AccessibilityNodeInfo txlNodeInfoList;
 
     public static String packageList = "android.widget.ListView";
 
     public static String packageViewPager = "com.tencent.mm.ui.mogic.WxViewPager";
+
+    public static String textViewPacakge = "android.widget.TextView";
+    public static String imageViewPackage = "android.widget.ImageView";
+    public static String ViewPackage = "android.view.View";
+
 
     /**
      * 模拟触摸事件
@@ -156,6 +162,39 @@ public abstract class BaseAccessbilityService extends AccessibilityService {
         return null;
     }
 
+
+    /**
+     * 查找对应文本的View
+     *
+     * @param type      text
+     * @return View
+     */
+    public void findViewByType(String type,AccessibilityNodeInfo parent,List<AccessibilityNodeInfo> result) {
+        if (parent == null) {
+            return ;
+        }
+
+        int count = parent.getChildCount() ;
+        if (count == 0){
+            return ;
+        }
+        for (int i = 0;i<count;i++){
+            AccessibilityNodeInfo child = parent.getChild(i);
+            if (child == null){
+                continue;
+            }
+            if (child.getClassName().toString().equalsIgnoreCase(type)){
+                result.add(child);
+             }
+
+            if (child.getChildCount() !=0){
+                findViewByType(type,child,result);
+            }
+        }
+
+        return ;
+    }
+
     /**
      * 查找对应文本的View
      *
@@ -206,6 +245,7 @@ public abstract class BaseAccessbilityService extends AccessibilityService {
         if (accessibilityNodeInfo == null) {
             return null;
         }
+
 
 
         List<AccessibilityNodeInfo> nodeInfoList = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(id);

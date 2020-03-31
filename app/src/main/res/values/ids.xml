@@ -2,6 +2,8 @@
 <resources>
 
     <item type="id" name="btn_start" />
+    <item type="id" name="tv_show_remind" />
+
     <item type="id" name="rd_xx" />
     <item type="id" name="rd_pyq" />
     <item type="id" name="rd_pyq_detail" />

@@ -15,7 +15,7 @@
             android:layout_height="match_parent"
             android:orientation="vertical">
 
-        <LinearLayout
+            <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="15dp"
@@ -35,7 +35,8 @@
                 android:checked="false" />
         </LinearLayout>
 
-        <LinearLayout
+
+            <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="15dp"
@@ -43,32 +44,10 @@
             android:orientation="horizontal"
             android:padding="20dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="开启截屏" />
-
-            <Switch
-                android:id="@+id/openJp"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:checked="false" />
-        </LinearLayout>
-
-
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="15dp"
-            android:background="@color/white"
-            android:orientation="horizontal"
-            android:padding="20dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="开启微信截屏" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="开启微信通讯录" />
 
             <Switch
                 android:id="@+id/swWx"
@@ -89,8 +68,7 @@
                     android:id="@+id/btn_end"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="结束微信截屏"
-                    />
+                    android:text="结束微信" />
 
             </LinearLayout>
 
@@ -118,7 +96,7 @@
 
         </LinearLayout>
         <LinearLayout
-            android:id="@+id/ll_result"
+            android:id="@+id/ll_version"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="15dp"
@@ -138,10 +116,23 @@
                 android:text="请开启辅助功能" />
 
         </LinearLayout>
-            <ImageView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:id="@+id/img_show"></ImageView>
+
+            <LinearLayout
+                android:id="@+id/ll_result"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginTop="15dp"
+                android:background="@color/white"
+                android:orientation="horizontal"
+                android:padding="20dp">
+
+                <TextView
+                    android:id="@+id/tv_result"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="" />
+
+            </LinearLayout>
         </LinearLayout>
 
     </androidx.core.widget.NestedScrollView>
