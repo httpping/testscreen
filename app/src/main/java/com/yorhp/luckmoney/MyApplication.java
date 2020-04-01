@@ -2,10 +2,6 @@ package com.yorhp.luckmoney;
 
 import android.app.Application;
 
-/**
- * Created by mq on 2018/8/19 下午9:17
- * mqcoder90@gmail.com
- */
 
 public class MyApplication extends Application {
 

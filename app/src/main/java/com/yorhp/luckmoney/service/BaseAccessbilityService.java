@@ -13,11 +13,6 @@ import android.view.accessibility.AccessibilityNodeInfo;
 
 import java.util.List;
 
-/**
- * @author Tyhj
- * @date 2019/6/30
- */
-
 public abstract class BaseAccessbilityService extends AccessibilityService {
 
     /**

@@ -19,7 +19,6 @@ import androidx.annotation.NonNull;
  * Grouping tasks like this avoids the effects of task starvation (e.g. disk reads don't wait behind
  * webservice requests).
  *
- * @author dhht
  */
 public class AppExecutors {
 

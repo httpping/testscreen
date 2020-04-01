@@ -6,10 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ThreadFactory;
 
-/**
- * @author HanPei
- * @date 2019/3/19  上午10:50
- */
+
 public class MyThreadFactory implements ThreadFactory {
 
     private int counter;

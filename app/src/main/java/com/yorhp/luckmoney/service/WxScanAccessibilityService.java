@@ -31,12 +31,9 @@ import static android.view.accessibility.AccessibilityEvent.TYPE_WINDOW_STATE_CH
 import static android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD;
 
 /**
- * 抢红包辅助
+ *  辅助
  *
- * @author Tyhj
- * @date 2019/6/30
  */
-
 public class WxScanAccessibilityService extends BaseAccessbilityService {
 
 
