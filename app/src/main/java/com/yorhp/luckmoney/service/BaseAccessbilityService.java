@@ -35,6 +35,8 @@ public abstract class BaseAccessbilityService extends AccessibilityService {
     public static String textViewPacakge = "android.widget.TextView";
     public static String imageViewPackage = "android.widget.ImageView";
     public static String ViewPackage = "android.view.View";
+    public static String ButtonViewPackage = "android.widget.Button";
+    public static String FrameLayoutPackage = "android.widget.FrameLayout";
 
 
     /**
@@ -176,6 +178,9 @@ public abstract class BaseAccessbilityService extends AccessibilityService {
 
         int count = parent.getChildCount() ;
         if (count == 0){
+            if (parent.getClassName().toString().equalsIgnoreCase(type)){
+                result.add(parent);
+            }
             return ;
         }
         for (int i = 0;i<count;i++){

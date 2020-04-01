@@ -66,6 +66,7 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
      */
     public static final int txl = 3;
 
+    public static final int jsf = 4;
 
     /**
      * 运行类型
@@ -173,6 +174,8 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
     public boolean isStartTxl = false;
     public int  scrollWhat = 10010;
     public int  scrollWhatWXViewPager  = 10011;
+
+    public boolean isStartJsf = false;
 
     //滑动方向
     public int action ;
@@ -426,6 +429,417 @@ public class WxScanAccessibilityService extends BaseAccessbilityService {
         Log.d("wxuser",wxUsers.size()+"");
         return wxUsers;
     }
+
+
+
+
+
+    /**
+     * 通讯录扫描
+     */
+    public List<String> scanJSF(int scroll){
+
+
+        List<String> blackuser = new ArrayList<>();
+
+        //添加成员
+        AccessibilityNodeInfo addUserBtn = null;
+        AccessibilityNodeInfo dimssUserBtn = null ;
+
+        List<AccessibilityNodeInfo> endTextView = new ArrayList<>();
+        findViewByType(imageViewPackage,getRootInActiveWindow(),endTextView);
+        String endLab = "添加成员";
+        for (AccessibilityNodeInfo textView :endTextView){
+            String text =  textView.getContentDescription()==null?"":textView.getContentDescription().toString();
+            if (text.trim().endsWith(endLab)){
+                addUserBtn = textView;
+                break;
+            }
+        }
+
+        findViewByType(imageViewPackage,getRootInActiveWindow(),endTextView);
+        endLab = "删除成员";
+        for (AccessibilityNodeInfo textView :endTextView){
+            String text =  textView.getContentDescription()==null?"":textView.getContentDescription().toString();
+            if (text.trim().endsWith(endLab)){
+                dimssUserBtn = textView;
+                break;
+            }
+        }
+
+        AccessibilityNodeInfo jsfListView = null;
+        //查找ListView
+        findViewByType(packageList,getRootInActiveWindow(),endTextView);
+        for (AccessibilityNodeInfo textView :endTextView){
+            jsfListView  =textView;
+        }
+
+        String listId = jsfListView.getViewIdResourceName();
+
+        if (addUserBtn == null || jsfListView == null){
+            showMessageTip("没有发现删除和添加按钮");
+            return null;
+        }
+
+
+        action = scroll;
+        //最大间隔5S
+        int maxJgTime =5;
+
+        int count = 0;
+
+
+        //添加的用户
+        List<String> addUser = new ArrayList<>();
+        //滚动次数
+        int scrollNum = 0;
+        boolean isContentChange ;
+        while (true && addUserBtn!=null && !isend && mService!=null) {
+            //刷新list内容
+            jsfListView.recycle();
+            jsfListView = findViewByID(listId);
+
+            List<String> curUsers = new ArrayList<>();
+            //1、扫描当前群用户。
+            endTextView = checkTextView(listId);
+            for (AccessibilityNodeInfo textView :endTextView){
+                String text =  textView.getText()==null?"":textView.getText().toString();
+                curUsers.add(text);
+            }
+
+            //删除掉
+            if (addUser.size()!=0) {
+                caclBalck(blackuser, addUser, curUsers);
+            }
+
+            //删除掉用户
+            if (curUsers.size()!=1){
+                deleteUser(dimssUserBtn);
+                continue;
+            }
+
+
+            List<String> lastUser = new ArrayList<>();
+            lastUser.addAll(addUser);
+            addUser.clear();
+            //添加用户
+            clickAddUser(addUserBtn,addUser,scrollNum,listId);
+
+            verfiyAddState(listId,addUser.size());
+
+
+            scrollNum++;
+
+            int startLen = lastUser.size();
+            lastUser.removeAll(addUser);
+            int endLen = lastUser.size();
+
+            //判断结束
+            if (startLen-endLen == addUser.size()){
+                return blackuser;
+            }
+
+
+            try {
+                Thread.sleep((long) (200 + Math.random()*1000));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+           /* try {
+                Thread.sleep((long) (1000 + Math.random()*1000));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }*/
+
+            Log.d(TAG,"循环");
+        }
+        return blackuser;
+    }
+
+
+    public  List<AccessibilityNodeInfo> checkTextView(String listId){
+        AccessibilityNodeInfo jsfListView = findViewByID(listId);
+        if (jsfListView == null){
+            return null;
+        }
+        //刷新list内容
+        jsfListView.recycle();
+        jsfListView = findViewByID(listId);
+        List<AccessibilityNodeInfo> result = new ArrayList<>();
+        int count = jsfListView.getChildCount();
+
+        for (int i =0; i< count;i++){
+            AccessibilityNodeInfo item = jsfListView.getChild(i);
+            List<AccessibilityNodeInfo> endTextView = new ArrayList<>();
+            AccessibilityNodeInfo divItem = searchOnlyView(null, "分隔栏", textViewPacakge, item);
+            if (divItem!=null){
+                return result;
+            }
+            //1、扫描当前群用户。
+            endTextView.clear();
+            findViewByType(textViewPacakge, item, endTextView);
+            result.addAll(endTextView);
+        }
+
+        return  result;
+    }
+
+    /**
+     *  循环校验校验
+     * @param listId
+     * @param size
+     */
+    private void verfiyAddState(String listId, int size) {
+        int count = 0;
+        while (true && count++ <50) {
+            List<AccessibilityNodeInfo> endTextView = checkTextView(listId);
+             if (endTextView!=null && endTextView.size() !=0) {
+                 return;
+             }
+
+            AccessibilityNodeInfo btnSubmmit = searchOnlyView("确定", null, ButtonViewPackage, getRootInActiveWindow());
+
+             if (btnSubmmit!=null){
+//                 btnSubmmit.performAction(ACTION_CLICK);
+                 //关闭弹窗
+                 performGlobalAction(GLOBAL_ACTION_BACK);
+                 try {
+                     Thread.sleep(1000);
+                 } catch (InterruptedException e) {
+                     e.printStackTrace();
+                 }
+             }
+
+            //查找是否回到聊天页面
+            endTextView = new ArrayList<>();
+            findViewByType(FrameLayoutPackage,getRootInActiveWindow(),endTextView);
+            String endLab = "当前所在页面,与群聊";
+            AccessibilityNodeInfo liaotian = null;
+            for (AccessibilityNodeInfo textView :endTextView){
+                String text =  textView.getContentDescription()==null?"":textView.getContentDescription().toString();
+                if (text.trim().startsWith(endLab)){
+                    liaotian = textView;
+                    break;
+                }
+            }
+            if (liaotian!=null){
+                endLab = "聊天信息";
+                AccessibilityNodeInfo moreBtn = searchOnlyView(null, endLab, imageViewPackage, getRootInActiveWindow());
+                if (moreBtn!=null) {
+                    moreBtn.getParent().performAction(ACTION_CLICK);
+                }
+            }
+
+
+
+
+
+            try {
+                Thread.sleep((long) (Math.random()*1000)+100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        throw new IllegalArgumentException("校验失败");
+    }
+        /**
+         * 添加用户操作
+         * @param addUserBtn
+         * @param addUser
+         * @param scrollNum
+         */
+    private void clickAddUser(AccessibilityNodeInfo addUserBtn, List<String> addUser, int scrollNum,String listId) {
+
+        List<AccessibilityNodeInfo> endTextView = new ArrayList<>();
+        findViewByType(imageViewPackage,getRootInActiveWindow(),endTextView);
+        String endLab = "添加成员";
+        for (AccessibilityNodeInfo textView :endTextView){
+            String text =  textView.getContentDescription()==null?"":textView.getContentDescription().toString();
+            if (text.trim().endsWith(endLab)){
+                addUserBtn = textView;
+                break;
+            }
+        }
+
+        addUserBtn.getParent().performAction(ACTION_CLICK);
+        try {
+            Thread.sleep((long) (400 + Math.random()*1000));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        AccessibilityNodeInfo btnSubmit = searchOnlyView("确定", null,ButtonViewPackage, getRootInActiveWindow());
+
+        AccessibilityNodeInfo listView = searchOnlyView(null, null,packageList, getRootInActiveWindow());
+        String listViewId = listView.getViewIdResourceName();
+
+        //滚动到位置
+        if (scrollNum!=0){
+            for (int i = 0 ;i<scrollNum;i++) {
+                listView.performAction(ACTION_SCROLL_FORWARD);
+                try {
+                    Thread.sleep((long) (200 + Math.random()*100));
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        //刷新listview
+        listView.recycle();
+        listView = findViewByID(listViewId);
+        int count =listView.getChildCount();
+        String nameId = null;
+        //选中联系人
+        for (int i = 2;i< count;i++){
+            AccessibilityNodeInfo item = listView.getChild(i);
+            AccessibilityNodeInfo texView;
+            if (nameId == null) {
+                 texView = searchOnlyView(null, null, textViewPacakge, item);
+                 nameId = texView.getViewIdResourceName();
+            }else {
+                //加速查找
+                texView = findViewByID(nameId);
+            }
+
+            String name = texView.getText().toString();
+            addUser.add(name);
+
+            item.performAction(ACTION_CLICK);
+            try {
+                Thread.sleep((long) (200+ Math.random()*100));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        btnSubmit.performAction(ACTION_CLICK);
+        try {
+            //防止网络卡顿
+            Thread.sleep((long) (2000+ Math.random()*100));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        //循环等待添加结果
+
+
+
+        //回到了群页面了
+        Log.d(TAG,"添加完成了");
+
+    }
+
+
+    /**
+     * 删除所有用户
+     * @param deleteUserBtn
+     */
+    public void deleteUser(AccessibilityNodeInfo deleteUserBtn){
+
+        //没有Dimss
+        List<AccessibilityNodeInfo> endTextView =new ArrayList<>();
+        findViewByType(imageViewPackage,getRootInActiveWindow(),endTextView);
+        String endLab = "删除成员";
+        for (AccessibilityNodeInfo textView :endTextView){
+            String text =  textView.getContentDescription()==null?"":textView.getContentDescription().toString();
+            if (text.trim().endsWith(endLab)){
+                deleteUserBtn = textView;
+                break;
+            }
+        }
+        deleteUserBtn.getParent().performAction(ACTION_CLICK);
+        try {
+            Thread.sleep((long) (400 + Math.random()*1000));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        //查找删除按钮
+        AccessibilityNodeInfo btnDel = searchOnlyView("删除", null,ButtonViewPackage, getRootInActiveWindow());
+
+        AccessibilityNodeInfo listView = searchOnlyView(null, null,packageList, getRootInActiveWindow());
+
+
+        int count =listView.getChildCount();
+        for (int i =0;i< count;i++){
+            listView.getChild(i).performAction(ACTION_CLICK);
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        btnDel.performAction(ACTION_CLICK);
+        try {
+            Thread.sleep(300);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        AccessibilityNodeInfo btnSubmit = searchOnlyView("确定", null,ButtonViewPackage, getRootInActiveWindow());
+        btnSubmit.performAction(ACTION_CLICK);
+        try {
+            Thread.sleep((long) (2000+Math.random()*1000));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 查找阿牛,确认只有一个的时候才能用
+     * @param text
+     * @param textDesc
+     * @param rootView
+     * @return
+     */
+    public AccessibilityNodeInfo searchOnlyView(String text,String textDesc,String type,AccessibilityNodeInfo rootView){
+        List<AccessibilityNodeInfo> endTextView = new ArrayList<>();
+        findViewByType(type,rootView,endTextView);
+        String endLab = "删除";
+        for (AccessibilityNodeInfo textView :endTextView){
+            String textC =  textView.getText()==null?"":textView.getText().toString();
+            String textDescC =  textView.getContentDescription()==null?"":textView.getContentDescription().toString();
+
+            if (text!=null){
+                if (text.equalsIgnoreCase(textC)){
+                    return textView;
+                }
+            }
+            if (textDesc!=null){
+                if (textDesc.equalsIgnoreCase(textDescC)){
+                    return textView;
+                }
+            }
+            if (text==null && textDesc == null) {
+                return textView;
+            }
+        }
+        return null;
+    }
+
+
+    /**
+     * 计算黑名单
+     * @param blackUser
+     * @param addUser
+     * @param curUser
+     */
+    public void caclBalck(List<String> blackUser ,List<String> addUser, List<String> curUser){
+
+        for (String user :addUser){
+
+            int index = curUser.indexOf(user);
+            if (index<0){
+                //加入黑名单
+                blackUser.add(user);
+            }
+
+        }
+
+    }
+
 
 
     /**
